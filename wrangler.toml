@@ -1,0 +1,22 @@
+name = "world-bank-miniapp"
+type = "javascript"
+account_id = ""  # Replace with your Cloudflare Account ID
+workers_dev = true
+main = "worker/index.js"
+
+[build]
+command = "npm run build"
+cwd = "."
+watch_paths = ["src/**/*.jsx", "src/**/*.css"]
+
+[build.upload]
+format = "modules"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[[triggers.crons]]
+cron = "0 0 * * *"
+
+[env.development]
+vars = { ENVIRONMENT = "development" }

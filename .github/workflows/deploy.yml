@@ -1,0 +1,48 @@
+name: Build and Deploy to Cloudflare
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (for wrangler)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain-action@stable
+
+      - name: Build backend (Rust)
+        working-directory: ./backend
+        run: |
+          cargo build --release
+
+      - name: Build frontend (Rust/wasm or static)
+        working-directory: ./frontend
+        run: |
+          # If frontend is a Yew/Trunk project use trunk. Otherwise adjust build steps.
+          if [ -f Cargo.toml ]; then
+            if command -v trunk >/dev/null 2>&1; then
+              trunk build --release --public-url ./
+            else
+              cargo build --release
+            fi
+          fi
+
+      - name: Publish with Wrangler
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          # Wrangler will use wrangler.toml at repo root (or ./worker) — adjust if needed.
+          wrangler publish --api-token "$CF_API_TOKEN"

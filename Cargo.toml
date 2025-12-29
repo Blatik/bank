@@ -1,0 +1,7 @@
+[workspace]
+members = ["backend", "frontend"]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["Your Name"]
