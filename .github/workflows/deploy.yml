@@ -3,6 +3,7 @@ name: Build and Deploy to Cloudflare
 on:
   push:
     branches: [ "main", "master" ]
+  workflow_dispatch: {}
 
 jobs:
   build-and-deploy:
@@ -38,6 +39,13 @@ jobs:
               cargo build --release
             fi
           fi
+
+
+      - name: Configure wrangler account_id
+        if: secrets.CF_ACCOUNT_ID != ''
+        run: |
+          # replace account_id in wrangler.toml with secret value
+          sed -i -e "s/^account_id = .*$/account_id = \"${{ secrets.CF_ACCOUNT_ID }}\"/" wrangler.toml || true
 
       - name: Publish with Wrangler
         env:
