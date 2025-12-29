@@ -20,6 +20,17 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler
 
+      - name: CI diagnostics
+        run: |
+          echo "=== CI diagnostics: env summary (no secrets values) ==="
+          echo "CF_API_TOKEN set: ${CF_API_TOKEN-}" >/dev/null || true
+          if [ -n "${{ secrets.CF_API_TOKEN }}" ]; then echo "CF_API_TOKEN secret is configured"; else echo "CF_API_TOKEN secret NOT set"; fi
+          if [ -n "${{ secrets.CF_ACCOUNT_ID }}" ]; then echo "CF_ACCOUNT_ID secret is configured"; else echo "CF_ACCOUNT_ID secret NOT set"; fi
+          echo "--- wrangler.toml contents ---"
+          if [ -f wrangler.toml ]; then cat wrangler.toml || true; else echo "wrangler.toml not found"; fi
+          echo "--- wrangler binary ---"
+          if command -v wrangler >/dev/null 2>&1; then wrangler --version || true; else echo "wrangler not installed"; fi
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain-action@stable
 
@@ -42,10 +53,15 @@ jobs:
 
 
       - name: Configure wrangler account_id
-        if: secrets.CF_ACCOUNT_ID != ''
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
-          # replace account_id in wrangler.toml with secret value
-          sed -i -e "s/^account_id = .*$/account_id = \"${{ secrets.CF_ACCOUNT_ID }}\"/" wrangler.toml || true
+          if [ -n "$CF_ACCOUNT_ID" ]; then
+            echo "Injecting CF_ACCOUNT_ID into wrangler.toml"
+            sed -i -e "s/^account_id = .*$/account_id = \"$CF_ACCOUNT_ID\"/" wrangler.toml || true
+          else
+            echo "CF_ACCOUNT_ID not set; skipping account_id injection"
+          fi
 
       - name: Publish with Wrangler
         env:
